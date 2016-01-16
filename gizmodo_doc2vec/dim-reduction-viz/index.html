@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Test Viz</title>
+        
+
+        <!--BOOTSTRAP-->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+        <!--mobile first-->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <!--removed html from url but still is html-->
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+        <!--font awesome-->
+        <!-- <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet"> -->
+
+
+    </head>
+
+    <body>
+        <div id="wrap">
+
+            
+            <div id="content">
+                <div class="container">
+                
+                           
+
+<script src="js/external/d3.v3.min.js" charset="utf-8"></script>
+<script src="js/external/jquery-1.7.min.js" charset="utf-8"></script>
+<script src="js/external/jquery-ui.min.js" charset="utf-8"></script>
+<script src="js/external/three.min.js"></script>
+<script src="js/Projector.js"></script>
+<script src="js/TrackballControls.js"></script>
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/smoothness/jquery-ui.min.css">
+<script src="js/BasicVis.js" type="text/javascript"></script>
+<script src="js/CostLayout-worker-3D.js" type="text/javascript"></script>
+<!-- <script src="js/data/first_2000.js" type="text/javascript"></script> -->
+<script src="js/data/MNIST.js" type="text/javascript"></script>
+<!-- <script src="js/data/all_2d.js" type="text/javascript"></script> -->
+<!-- <script src="js/data/all_3d.js" type="text/javascript"></script> -->
+<script src="js/data/first_1000.js" type="text/javascript"></script>
+<script src="js/data/urls.js" type="text/javascript"></script>
+<!-- <script src="js/data/closest_idx.js" type="text/javascript"></script> -->
+
+<style>
+
+  .hover_show {
+    opacity: 0.0;
+  }
+  .hover_show:hover {
+    opacity: 0.4;
+  }
+
+  .highlight {
+    opacity: 0.8;
+  }
+  .highlight:hover {
+    opacity: 1.0;
+  }
+
+  .figure {
+    width: 100%;
+    margin-top: 30px;
+    margin-bottom: 20px;
+  }
+
+</style>
+
+
+<script>
+  
+var N = 1000;
+var D = 2;
+var ds_orig2d = new Float32Array(N*N);
+var xs = first_1000_xs_2d;
+  for (var i = 0; i < N; i++)
+  for (var j = 0; j < N; j++) {
+    var sum = 0;
+    for (var d = 0; d < D; d++){
+      var diff = xs[D*i + d] - xs[D*j + d];
+      sum += diff*diff;
+    }
+    ds_orig2d[i + N*j] = Math.sqrt(sum);
+  }
+
+var D = 3;
+var ds_orig3d = new Float32Array(N*N);
+var xs = first_1000_xs_3d;
+  for (var i = 0; i < N; i++)
+  for (var j = 0; j < N; j++) {
+    var sum = 0;
+    for (var d = 0; d < D; d++){
+      var diff = xs[D*i + d] - xs[D*j + d];
+      sum += diff*diff;
+    }
+    ds_orig3d[i + N*j] = Math.sqrt(sum);
+  }
+
+function knn_points(K, i, D, ds_orig) {
+  var knn = [];
+  // stupid, dumb, easy hack for testing:
+  for (var k = 0; k < K; k++) {
+    var x = null, xd = 100000;
+    for (var j = 0; j < N; j++) {
+      var D = ds_orig[i + N*j];
+      if ( i!=j && knn.indexOf(j) == -1 && D < xd) {
+        x = j;
+        xd = D;
+      }
+    }
+    knn.push(x);
+  }
+  return knn;
+}
+
+</script>
+
+<script>
+
+// var mnist_ys = $.map(mnist_ys, function(el) { return el });
+var first_1000_ys = $.map(first_1000_ys, function(el) { return el });
+var first_1000_ys = $.map(first_1000_ys, function(el) { return el });
+
+var text_tooltip = new BasicVis.TextTooltip();
+text_tooltip._labels = first_1000_ys;
+setTimeout(function() {text_tooltip.hide();}, 3000);
+</script>
+
+<div id="twod" class="figure" style="width: 60%; margin: 0 auto; border: 1px solid black; margin-bottom: 8px;">
+</div>
+
+
+<br>
+<script type="text/javascript">
+  setTimeout(function(){
+    var test = new GraphLayout("#twod", 35);
+    test.scatter.size(3.3);
+
+    setTimeout(function() {
+      test.scatter.xrange([-11,13]);
+      test.scatter.yrange([-11,13]);
+      
+      text_tooltip.bind(test.scatter.points);
+
+      //commented this out, doesn't make a diff // text_tooltip.bind_move(test.scatter.s);
+      // test_wrap.layout();
+    }, 50);
+    var W = new Worker("js/CostLayout-worker-3D.js");
+    W.onmessage = function(e) {
+      data = e.data;
+      switch (data.msg) {
+        case "update":
+          test.sne = data.embed;
+          window.requestAnimationFrame(function() { test.rerender();});
+          break;
+        case "ready":
+          break;
+        // case "edges":
+          // test.edges = data.edges;
+          // test.make_edges();
+          // window.requestAnimationFrame(function() { test.rerender();});
+      }
+    };
+
+    W.postMessage({cmd: "init_2d", xs: first_1000_xs_2d, N: N, D: 2});
+
+  }, 500);
+</script>
+
+<div class="row">
+  <div id="col-title-2d"></div>
+  <div class="col-md-6" id="2d-display">
+    <h4>Click a point above to view similar articles!</h4>
+  </div>  
+  <div class="col-md-6" id="2d-doc2vec-display"></div>  
+</div>
+
+
+<div class="figure" style="width: 90%; margin: 0 auto; border: 1px solid black; padding: 5px; margin-bottom: 8px;">
+<div id="threed" style="width: 100%">
+
+</div>
+</div>
+
+
+
+<div class="caption">
+(Drag your mouse above the point to see the closest articles. You can also spin the hairball around)
+</div>
+
+<br>
+
+<script type="text/javascript">
+
+  setTimeout(function(){
+    var test = new BasicVis.GraphPlot3("#threed");
+    test.controls.reset();
+    test.layout();
+    test._animate();
+    test.point_classes = first_1000_ys;
+    var test_wrap = new AnimationWrapper(test);
+
+    var tooltip = null;
+    setTimeout(function() {
+      test_wrap.layout();
+
+      test.point_event_funcs["mouseover"] = function(i) {
+        //need to put i through a filter to convert it back to the original coordinates
+        text_tooltip.display(i);
+        text_tooltip.unhide();
+        var orig_closest = idx_top3[i]
+        var knn = [];
+        knn = knn_points(3, i, 3, ds_orig3d);
+        var html_string = '<h4> Article: <a href="' + urls[i] + '"target="_blank">' + first_1000_ys[i] + '</h4></a>';
+        html_string += '<h5> After reducing to 3 dimensions, the closest articles are: </h5>';
+        html_string += '<ul>';
+        for (var i = 0; i < knn.length; i++) {
+          html_string += '<li><a href="' + urls[knn[i]] + '"target="_blank">' + first_1000_ys[knn[i]] + '</a></li>';  
+        }
+        html_string += '</ul>';
+        // for 300 dimension vectors, can't query first_1000_ys, have to query all_articles
+
+        html_string += '<h5> From the original 300 dimension vectors, the closest articles are: </h5>';
+        html_string += '<ul>';
+        for (var r = 0; r < orig_closest.length; r++) {
+          html_string += '<li><a href="' + urls[orig_closest[r]] + '"target="_blank">' + first_1000_ys[orig_closest[r]] + '</a></li>'; 
+        }
+        html_string += '</ul>';
+        $('#3d-display').html(html_string);
+
+      };
+      test.point_event_funcs["mouseout"] = function(i) {
+        text_tooltip.hide();
+      };
+      text_tooltip.bind_move(test.s, i);
+      text_tooltip.bind_click(test.s);
+      
+    }, 50);
+    var W = new Worker("js/CostLayout-worker-3D.js");
+    W.onmessage = function(e) {
+      data = e.data;
+      switch (data.msg) {
+        case "edges":
+          test.make_points(N);
+          test.make_edges(data.edges);
+          break;
+        case "update":
+          test.position(data.embed);
+          break;
+        case "done":
+          test_wrap.on_done();
+          break;
+      }
+    };
+    W.postMessage({cmd: "init", xs: first_1000_xs_3d, N: N, D: 3, cost: "graph"});
+    // test_wrap.run   = function(){ W.postMessage({cmd: "run", steps: 300, skip: 1,  Kstep: 8.0, Kmu: 0.8})};
+    // test_wrap.reset = function(){ W.postMessage({cmd: "reset"})};
+  }, 500);
+
+
+  
+</script>
+
+
+<div class="row">
+  <div class="col-md-6" id="3d-display">
+    <h4>Drag a mouse above a point above to view similar articles!</h4>
+  </div>  
+  <div class="col-md-6" id="3d-doc2vec-display"></div>  
+</div>
+
+
+  <!-- jQuery-->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+  <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+  </body>
+
+</html>
