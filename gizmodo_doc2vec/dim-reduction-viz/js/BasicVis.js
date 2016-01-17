@@ -471,15 +471,19 @@ var BasicVis = new function() {
     };
     var showclick = function(i) {
       console.log("clicked!!!")
+      console.log(i)
       var orig_closest = idx_top3[i]
       var knn = [];
+      console.log(ds_orig2d);
       knn = knn_points(3, i, 2, ds_orig2d);
-      var title_string = '<h4> Article: <a href="' + urls[i] + '"target="_blank">' + first_1000_ys[i] + '</h4></a>';
+      var title_string = '<h4> Article: <a href="' + urls[i_to_orig[i]] + '"target="_blank">' + first_1000_ys[i] + '</h4></a>';
       $('#col-title-2d').html(title_string);
       var html_string = '<h5> After reducing to 2 dimensions, the closest articles are: </h5>';
       html_string += '<ul>';
       for (var i = 0; i < knn.length; i++) {
-        html_string += '<li><a href="' + urls[knn[i]] + '"target="_blank">' + first_1000_ys[knn[i]] + '</a></li>'; 
+        console.log("closest:");
+        console.log(knn[i]);
+        html_string += '<li><a href="' + urls[i_to_orig[knn[i]]] + '"target="_blank">' + first_1000_ys[knn[i]] + '</a></li>'; 
       }
       html_string += '</ul>';
 
@@ -487,7 +491,8 @@ var BasicVis = new function() {
       better_string += '<h5> From the original 300 dimension vectors, the closest articles are: </h5>';
       better_string += '<ul>';
       for (var r = 0; r < orig_closest.length; r++) {
-        better_string += '<li><a href="' + urls[orig_closest[r]] + '"target="_blank">' + first_1000_ys[orig_closest[r]] + '</a></li>'; 
+        console.log(orig_closest[r]);
+        better_string += '<li><a href="' + urls[orig_closest[r]] + '"target="_blank">' + all_articles[orig_closest[r]] + '</a></li>'; 
       }
       better_string += '</ul>';
       $('#2d-display').html(html_string);
@@ -517,7 +522,7 @@ var BasicVis = new function() {
   this.Tooltip.prototype.bind_click = function(s) {
     // var this_ = this;
     s.on("mousedown",  function() { 
-      console.log('shitty not working...')
+      console.log('not working...')
     });
   };
 
@@ -671,7 +676,8 @@ var BasicVis = new function() {
   this.GraphPlot3.prototype.make_points = function make_points(n) {
       var geometry = new THREE.SphereGeometry( 3, 15, 15 );
       for ( var i = 0; i < n; i ++ ) {
-      var k = 5;
+      // var k = 5;
+      var k = this.point_classes[i];
       k = k != undefined ? k : "default";
           var object = new THREE.Mesh( geometry, this.materials.points[k] );
       object.i = i;
@@ -772,8 +778,8 @@ var GraphLayout = function(s, range) {
     .x(function(i) {return this_.sne[2*i  ];})
     .y(function(i) {return this_.sne[2*i+1];})
     .size(8)
-    // .color(function(i){return d3.hsl(360*mnist_ys[i]/10.0,0.5,0.5);})
-    .color(function(i){return d3.hsl(360*5/10.0,0.5,0.5);})
+    .color(function(i){return d3.hsl(360*colors_1000[i]/10.0,0.5,0.5);}) //put cluster number
+    // .color(function(i){return d3.hsl(360*5/10.0,0.5,0.5);})
     .enable_zoom()
     .bindToWindowResize();
   this.scatter.s.style("border", "1px black solid");
@@ -798,12 +804,12 @@ var GraphLayout = function(s, range) {
       .style("stroke-width", 1.25)
       .style("stroke", function(edge, n) {
         var i = edges[2*n], j = edges[2*n+1];
-        // if (mnist_ys[i] == mnist_ys[j]){
-          // return d3.hsl(360*mnist_ys[i]/10.0,0.35,0.35);
-        return d3.hsl(360*5/10.0,0.35,0.35);
-        // } else {
-          // return d3.rgb(80, 80, 80);
-        // }}
+        if (colors_1000[i] == colors_1000[j]){
+          return d3.hsl(360*colors_1000[i]/10.0,0.35,0.35);
+        // return d3.hsl(360*5/10.0,0.35,0.35);
+        } else {
+          return d3.rgb(80, 80, 80);
+        }
       });
     this.lines = selection[0];
   }
